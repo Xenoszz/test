@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Unity WebGL Player | Pacsop</title>
+  </head>
+  <body class="m-0 p-0 overflow-hidden bg-black">
+    <!-- Container สำหรับคะแนนและชีวิต -->
+    <div id="scoreLivesContainer" class="absolute bottom-10 left-5 sm:bottom-20 sm:left-60 md:left-60 flex flex-col items-center text-white z-10 space-y-24" style="display: none;">
+        <div class="text-center">
+            <h1 id="scoreDisplay" class="text-3xl md:text-4xl font-bold">0</h1>
+        </div>
+        <div class="text-center">
+            <h2 id="livesDisplay" class="text-3xl md:text-4xl font-bold">3</h2>
+        </div>
+    </div>
+
+    <!-- Unity Game Canvas -->
+    <canvas id="unity-canvas" class="w-full h-screen fixed top-0 left-0 bg-[#231F20]" tabindex="-1"></canvas>
+
+    <script src="Build/Final.loader.js"></script>
+    <script>
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        // สำหรับมือถือ: ตั้งค่าเต็มจอ
+        const meta = document.createElement("meta");
+        meta.name = "viewport";
+        meta.content = "width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes";
+        document.head.appendChild(meta);
+      }
+
+      createUnityInstance(document.querySelector("#unity-canvas"), {
+        dataUrl: "Build/Final.data.unityweb",
+        frameworkUrl: "Build/Final.framework.js.unityweb",
+        codeUrl: "Build/Final.wasm.unityweb",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "DefaultCompany",
+        productName: "Pacsop",
+        productVersion: "1.0",
+      }).then(() => {
+        resetGame(); // Reset score and lives when the game starts
+        fetchScore(); // Fetch updated score after resetting
+        fetchLives();
+        document.getElementById("scoreLivesContainer").style.display = "flex"; // Show score and lives container
+      });
+
+      // Fetch Score and Lives API
+      function fetchScore() {
+        fetch("http://207.148.67.228:9000/api/score")
+          .then((res) => res.json())
+          .then((data) => {
+            document.getElementById("scoreDisplay").innerText = data.score;
+          })
+          .catch(console.error);
+      }
+
+      function fetchLives() {
+        fetch("http://207.148.67.228:9000/api/lives")
+          .then((res) => res.json())
+          .then((data) => {
+            document.getElementById("livesDisplay").innerText = data.lives;
+          })
+          .catch(console.error);
+      }
+
+      // Reset score and lives
+      function resetGame() {
+        fetch("http://207.148.67.228:9000/api/score", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ score: 0 }),
+        }).catch(console.error);
+
+        fetch("http://207.148.67.228:9000/api/lives", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ lives: 3 }),
+        }).catch(console.error);
+      }
+
+      // Refresh Score and Lives Every Second
+      setInterval(fetchScore, 1000);
+      setInterval(fetchLives, 1000);
+    </script>
+  </body>
+</html>
